@@ -24,6 +24,7 @@ load(
     "find_toolchain",
     _name_to_crate_name = "name_to_crate_name",
 )
+load(":cargo_build_script_foreign_cc_wrapper.bzl", "extract_foreign_cc_deps", "prepare_pkg_config_script")
 
 # Reexport for cargo_build_script_wrapper.bzl
 name_to_crate_name = _name_to_crate_name
@@ -33,6 +34,8 @@ CargoBuildScriptRunfilesInfo = provider(
     fields = {
         "data": "List[Target]: The raw `cargo_build_script_runfiles.data` attribute.",
         "tools": "List[Target]: The raw `cargo_build_script_runfiles.tools` attribute.",
+        "pkg_config_script": "The foreign_cc pkg-config script to wrap the `cargo_build_script.script` target.",
+        "foreign_cc_files": "depset: The files of foreign_cc dependencies.",
     },
 )
 
@@ -62,6 +65,13 @@ def _cargo_build_script_runfiles_impl(ctx):
             is_executable = True,
         )
 
+    pkg_config_script = None
+    extra_files = None
+    foreign_cc_ext_build_dirs, foreign_cc_files = extract_foreign_cc_deps(ctx.attr.data)
+    if foreign_cc_ext_build_dirs:
+        pkg_config_script = prepare_pkg_config_script(ctx, foreign_cc_ext_build_dirs)
+        extra_files = depset(foreign_cc_ext_build_dirs, transitive = foreign_cc_files)
+
     # Tools are omitted here because they should be within the `script`
     # attribute's runfiles.
     runfiles = ctx.runfiles(files = ctx.files.data)
@@ -75,6 +85,8 @@ def _cargo_build_script_runfiles_impl(ctx):
         CargoBuildScriptRunfilesInfo(
             data = ctx.attr.data,
             tools = ctx.attr.tools,
+            pkg_config_script = pkg_config_script,
+            foreign_cc_files = extra_files,
         ),
     ]
 
@@ -118,6 +130,9 @@ https://github.com/bazelbuild/bazel/issues/15486
         ),
     },
     executable = True,
+    toolchains = [
+        "@rules_foreign_cc//foreign_cc/private/framework:shell_toolchain",
+    ],
 )
 
 def get_cc_compile_args_and_env(cc_toolchain, feature_configuration):
@@ -367,6 +382,8 @@ def _cargo_build_script_impl(ctx):
     for target in script_info.tools:
         script_tools.append(target[DefaultInfo].files)
         script_tools.append(target[DefaultInfo].default_runfiles.files)
+    if script_info.foreign_cc_files:
+        script_data.append(script_info.foreign_cc_files)
 
     workspace_name = ctx.label.workspace_name
     if not workspace_name:
@@ -624,8 +641,10 @@ def _cargo_build_script_impl(ctx):
         env["RULES_RUST_SYMLINK_EXEC_ROOT"] = "1"
 
     ctx.actions.run(
-        executable = ctx.executable._cargo_build_script_runner,
-        arguments = [args, runfiles_args],
+        executable = script_info.pkg_config_script or ctx.executable._cargo_build_script_runner,
+        arguments =
+            ([ctx.executable._cargo_build_script_runner.path] if script_info.pkg_config_script else []) +
+            [args, runfiles_args],
         outputs = [
             out_dir,
             env_out,
