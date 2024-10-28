@@ -565,3 +565,12 @@ def collect_cfgs():
         name = "collect_cfgs",
         build_setting_default = False,
     )
+
+def experimental_incremental_cache_path():
+    """A flag to control the location of the incremental cache. The path must be absolute and exist.
+    """
+    string_flag(
+        name = "experimental_incremental_cache_path",
+        build_setting_default = "",
+        visibility = ["//visibility:public"],
+    )

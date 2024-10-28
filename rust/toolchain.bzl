@@ -425,6 +425,10 @@ def _rust_toolchain_impl(ctx):
             "--@rules_rust//rust/settings:experimental_use_cc_common_link to be set",
         )
 
+    experimental_incremental_cache_path = ctx.attr._experimental_incremental_cache_path[BuildSettingInfo].value
+    if experimental_incremental_cache_path and not experimental_incremental_cache_path.startswith("/"):
+        fail("--@rules_rust//rust/settings:experimental_incremental_cache_path must be an absolute path")
+
     rust_std = ctx.attr.rust_std
 
     sysroot = _generate_sysroot(
@@ -642,6 +646,7 @@ def _rust_toolchain_impl(ctx):
         _experimental_use_cc_common_link = _experimental_use_cc_common_link(ctx),
         _experimental_use_global_allocator = experimental_use_global_allocator,
         _experimental_use_coverage_metadata_files = ctx.attr._experimental_use_coverage_metadata_files[BuildSettingInfo].value,
+        _experimental_incremental_cache_path = experimental_incremental_cache_path,
         _toolchain_generated_sysroot = ctx.attr._toolchain_generated_sysroot[BuildSettingInfo].value,
         _incompatible_do_not_include_data_in_compile_data = ctx.attr._incompatible_do_not_include_data_in_compile_data[IncompatibleFlagInfo].enabled,
         _incompatible_do_not_include_transitive_data_in_compile_inputs = ctx.attr._incompatible_do_not_include_transitive_data_in_compile_inputs[IncompatibleFlagInfo].enabled,
@@ -894,6 +899,13 @@ rust_toolchain = rule(
             doc = (
                 "Label to a boolean build setting that informs the target build whether a global allocator is being used." +
                 "This flag is only relevant when used together with --@rules_rust//rust/settings:experimental_use_global_allocator."
+            ),
+        ),
+        "_experimental_incremental_cache_path": attr.label(
+            default = Label("//rust/settings:experimental_incremental_cache_path"),
+            doc = (
+                "The absolute path for the incremental cache directory. This directory must be made writable " +
+                "to sandbox, if used, with --sandbox_writable_path."
             ),
         ),
         "_incompatible_do_not_include_data_in_compile_data": attr.label(

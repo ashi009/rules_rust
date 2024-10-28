@@ -1138,6 +1138,12 @@ def construct_arguments(
     if linker_script:
         rustc_flags.add(linker_script, format = "--codegen=link-arg=-T%s")
 
+    # Use incremental cache if enabled
+    if attr.use_incremental_cache:
+        if not toolchain._experimental_incremental_cache_path:
+            fail("Incremental cache path is not set. Please set `--@rules_rust//rust/settings:experimental_incremental_cache_path`.")
+        rustc_flags.add(toolchain._experimental_incremental_cache_path, format = "--codegen=incremental=%s")
+
     # Tell Rustc where to find the standard library (or libcore)
     rustc_flags.add_all(toolchain.rust_std_paths, before_each = "-L", format_each = "%s")
 
@@ -1579,6 +1585,12 @@ def rustc_compile_action(
             dsym_folder = ctx.actions.declare_directory(crate_info.output.basename + ".dSYM", sibling = crate_info.output)
             action_outputs.append(dsym_folder)
 
+    execution_requirements = None
+    if attr.use_incremental_cache:
+        # When using incremental cache, the caching is handled by rustc itself.
+        # We don't need to cache the result in bazel cache again, which will save some space.
+        execution_requirements = {"no-cache": "1"}
+
     if ctx.executable._process_wrapper:
         # Run as normal
         ctx.actions.run(
@@ -1587,6 +1599,7 @@ def rustc_compile_action(
             outputs = action_outputs,
             env = env,
             arguments = args.all,
+            execution_requirements = execution_requirements,
             mnemonic = "Rustc",
             progress_message = "Compiling Rust {} {}{} ({} file{})".format(
                 crate_info.type,
@@ -1605,6 +1618,7 @@ def rustc_compile_action(
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
                 arguments = args_metadata.all,
+                execution_requirements = execution_requirements,
                 mnemonic = "RustcMetadata",
                 progress_message = "Compiling Rust metadata {} {}{} ({} file{})".format(
                     crate_info.type,

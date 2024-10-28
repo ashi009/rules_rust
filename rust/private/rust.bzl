@@ -787,6 +787,14 @@ _COMMON_ATTRS = {
             file of arguments to rustc: `@$(location //package:target)`.
         """),
     ),
+    "use_incremental_cache": attr.bool(
+        doc = dedent("""\
+            Whether to use the incremental cache for this target.
+
+            If set to `True`, the target will use the incremental cache.
+        """),
+        default = False,
+    ),
     # TODO(stardoc): How do we provide additional documentation to an inherited attribute?
     # "name": attr.string(
     #     doc = "This name will also be used as the name of the crate built by this rule.",
