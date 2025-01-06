@@ -14,6 +14,7 @@
 
 """Functionality for constructing actions that invoke the Rust compiler"""
 
+load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load(
     "@bazel_tools//tools/build_defs/cc:action_names.bzl",
@@ -1172,7 +1173,7 @@ def construct_arguments(
         if toolchain.target_arch not in ("wasm32", "wasm64"):
             if output_dir:
                 use_pic = _should_use_pic(cc_toolchain, feature_configuration, crate_info.type, compilation_mode)
-                rpaths = _compute_rpaths(toolchain, output_dir, dep_info, use_pic)
+                rpaths = _compute_rpaths(ctx, toolchain, output_dir, crate_info, dep_info, use_pic)
             else:
                 rpaths = depset()
 
@@ -2149,12 +2150,14 @@ def _process_build_scripts(
         depset(build_flags_files, transitive = [dep_info.link_search_path_files]),
     )
 
-def _compute_rpaths(toolchain, output_dir, dep_info, use_pic):
+def _compute_rpaths(ctx, toolchain, output_dir, crate_info, dep_info, use_pic):
     """Determine the artifact's rpaths relative to the bazel root for runtime linking of shared libraries.
 
     Args:
+        ctx (ctx): The rule's context object
         toolchain (rust_toolchain): The current `rust_toolchain`
         output_dir (str): The output directory of the current target
+        crate_info (CrateInfo): The current target's crate info
         dep_info (DepInfo): The current target's dependency info
         use_pic: If set, prefers pic_static_library over static_library.
 
@@ -2174,6 +2177,14 @@ def _compute_rpaths(toolchain, output_dir, dep_info, use_pic):
         if _is_dylib(lib)
     ]
 
+    # As we have some dylibs included as data dependencies, so we need to
+    # include them in the rpath as well.
+    data_dylibs = [
+        data_file
+        for data_file in dep_info.transitive_data.to_list()
+        if data_file.extension in ["so", "dylib"] or ".so." in data_file.basename
+    ]
+
     # Include std dylib if dylib linkage is enabled
     if toolchain._experimental_link_std_dylib:
         # TODO: Make toolchain.rust_std to only include libstd.so
@@ -2183,7 +2194,7 @@ def _compute_rpaths(toolchain, output_dir, dep_info, use_pic):
             if is_std_dylib(file):
                 dylibs.append(file)
 
-    if not dylibs:
+    if not dylibs and not data_dylibs:
         return depset([])
 
     # For darwin, dylibs compiled by Bazel will fail to be resolved at runtime
@@ -2200,7 +2211,30 @@ def _compute_rpaths(toolchain, output_dir, dep_info, use_pic):
     return depset([
         relativize(lib_dir, output_dir)
         for lib_dir in _get_dir_names(dylibs)
+    ] + [
+        "{}.runfiles/{}".format(crate_info.output.basename, data_dir)
+        for data_dir in _get_runfile_dir_names(ctx, data_dylibs)
     ])
+
+def _get_runfile_dir_names(ctx, files):
+    """Returns a list of directory names under runfiles root from the given list of File objects
+
+    Args:
+        ctx (ctx): The rule's context object
+        files (list): A list of File objects
+
+    Returns:
+        list: A list of directory names under runfiles root for all files
+    """
+
+    dirs = {}
+    for f in files:
+        runfile_dir = paths.dirname(f.short_path)
+        if runfile_dir.startswith("../"):
+            dirs[runfile_dir[len("../"):]] = None
+        else:
+            dirs["{}/{}".format(ctx.workspace_name, runfile_dir)] = None
+    return dirs.keys()
 
 def _get_dir_names(files):
     """Returns a list of directory names from the given list of File objects
