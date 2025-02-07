@@ -510,11 +510,16 @@ def _cargo_build_script_impl(ctx):
         if not env["AR"]:
             env["AR"] = cc_toolchain.ar_executable
 
+        remap_flags = [
+            "-ffile-prefix-map=${pwd}=BAZEL_EXEC_ROOT",
+            "-ffile-prefix-map=${{pwd}}/{}=CARGO_MANIFEST_DIR".format(manifest_dir),
+        ]
+
         # Populate CFLAGS and CXXFLAGS that cc-rs relies on when building from source, in particular
         # to determine the deployment target when building for apple platforms (`macosx-version-min`
         # for example, itself derived from the `macos_minimum_os` Bazel argument).
-        env["CFLAGS"] = " ".join(_pwd_flags(cc_c_args))
-        env["CXXFLAGS"] = " ".join(_pwd_flags(cc_cxx_args))
+        env["CFLAGS"] = " ".join(_pwd_flags(cc_c_args + remap_flags))
+        env["CXXFLAGS"] = " ".join(_pwd_flags(cc_cxx_args + remap_flags))
         # It may be tempting to forward ARFLAGS, but cc-rs is opinionated enough
         # that doing so is more likely to hurt than help. If you need to change
         # ARFLAGS, make changes to cc-rs.
