@@ -1586,11 +1586,6 @@ def rustc_compile_action(
             dsym_folder = ctx.actions.declare_directory(crate_info.output.basename + ".dSYM", sibling = crate_info.output)
             action_outputs.append(dsym_folder)
 
-    execution_requirements = None
-    if attr.use_incremental_cache:
-        # When using incremental cache, the caching is handled by rustc itself.
-        # We don't need to cache the result in bazel cache again, which will save some space.
-        execution_requirements = {"no-cache": "1"}
 
     if ctx.executable._process_wrapper:
         # Run as normal
@@ -1600,7 +1595,6 @@ def rustc_compile_action(
             outputs = action_outputs,
             env = env,
             arguments = args.all,
-            execution_requirements = execution_requirements,
             mnemonic = "Rustc",
             progress_message = "Compiling Rust {} {}{} ({} file{})".format(
                 crate_info.type,
@@ -1619,7 +1613,6 @@ def rustc_compile_action(
                 outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
                 env = env,
                 arguments = args_metadata.all,
-                execution_requirements = execution_requirements,
                 mnemonic = "RustcMetadata",
                 progress_message = "Compiling Rust metadata {} {}{} ({} file{})".format(
                     crate_info.type,
