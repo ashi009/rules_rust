@@ -1598,7 +1598,7 @@ def rustc_compile_action(
             mnemonic = "Rustc",
             progress_message = "Compiling Rust {} {}{} ({} file{})".format(
                 crate_info.type,
-                ctx.label.name,
+                crate_info.name,
                 formatted_version,
                 len(srcs),
                 "" if len(srcs) == 1 else "s",
@@ -1616,7 +1616,7 @@ def rustc_compile_action(
                 mnemonic = "RustcMetadata",
                 progress_message = "Compiling Rust metadata {} {}{} ({} file{})".format(
                     crate_info.type,
-                    ctx.label.name,
+                    crate_info.name,
                     formatted_version,
                     len(srcs),
                     "" if len(srcs) == 1 else "s",
@@ -1636,7 +1636,7 @@ def rustc_compile_action(
             mnemonic = "Rustc",
             progress_message = "Compiling Rust (without process_wrapper) {} {}{} ({} file{})".format(
                 crate_info.type,
-                ctx.label.name,
+                crate_info.name,
                 formatted_version,
                 len(srcs),
                 "" if len(srcs) == 1 else "s",
