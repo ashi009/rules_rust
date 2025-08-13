@@ -304,6 +304,10 @@ rust_stdlib_filegroup(
             "lib/rustlib/{target_triple}/lib/*{dylib_ext}*",
             "lib/rustlib/{target_triple}/lib/*{staticlib_ext}",
             "lib/rustlib/{target_triple}/lib/self-contained/**",
+            "lib/rustlib/{exec_triple}/lib/*.rlib",
+            "lib/rustlib/{exec_triple}/lib/*{exec_dylib_ext}*",
+            "lib/rustlib/{exec_triple}/lib/*{exec_staticlib_ext}",
+            "lib/rustlib/{exec_triple}/lib/self-contained/**",
         ],
         # Some patterns (e.g. `lib/*.a`) don't match anything, see https://github.com/bazelbuild/rules_rust/pull/245
         allow_empty = True,
@@ -319,10 +323,11 @@ alias(
 )
 """
 
-def BUILD_for_stdlib(target_triple):
+def BUILD_for_stdlib(exec_triple, target_triple):
     """Emits a BUILD file the stdlib archive.
 
     Args:
+        exec_triple (struct): The triple that this compiler runs on
         target_triple (triple): The triple of the target platform
 
     Returns:
@@ -333,6 +338,10 @@ def BUILD_for_stdlib(target_triple):
         staticlib_ext = system_to_staticlib_ext(target_triple.system),
         dylib_ext = system_to_dylib_ext(target_triple.system),
         target_triple = target_triple.str,
+        exec_binary_ext = system_to_binary_ext(exec_triple.system),
+        exec_staticlib_ext = system_to_staticlib_ext(exec_triple.system),
+        exec_dylib_ext = system_to_dylib_ext(exec_triple.system),
+        exec_triple = exec_triple.str,
     )
 
 _build_file_for_rust_toolchain_template = """\
@@ -750,11 +759,12 @@ def BUILD_for_rustfmt_toolchain(name, rustfmt, rustc, rustc_lib):
         rustc_lib = rustc_lib,
     )
 
-def load_rust_stdlib(ctx, target_triple, version, iso_date = None):
+def load_rust_stdlib(ctx, exec_triple, target_triple, version, iso_date = None):
     """Loads a rust standard library and yields corresponding BUILD for it
 
     Args:
         ctx (repository_ctx): A repository_ctx.
+        exec_triple (struct): The rust-style target that this compiler runs on.
         target_triple (struct): The rust-style target triple of the tool
         version (str): The version of the tool among \"nightly\", \"beta\", or an exact version.
         iso_date (str): The iso_date to use with \"nightly\" or \"beta\" versions.
@@ -770,9 +780,16 @@ def load_rust_stdlib(ctx, target_triple, version, iso_date = None):
         tool_name = "rust-std",
         tool_subdirectories = ["rust-std-{}".format(target_triple.str)],
         version = version,
+    ) | load_arbitrary_tool(
+        ctx,
+        iso_date = iso_date,
+        target_triple = exec_triple,
+        tool_name = "rust-std",
+        tool_subdirectories = ["rust-std-{}".format(exec_triple.str)],
+        version = version,
     )
 
-    return BUILD_for_stdlib(target_triple), sha256
+    return BUILD_for_stdlib(exec_triple, target_triple), sha256
 
 def load_rustc_dev_nightly(ctx, target_triple, version, iso_date = None):
     """Loads the nightly rustc dev component

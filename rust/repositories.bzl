@@ -567,6 +567,7 @@ def _rust_toolchain_tools_repository_impl(ctx):
     target_triple = triple(ctx.attr.target_triple)
     rust_stdlib_content, rust_stdlib_sha256 = load_rust_stdlib(
         ctx = ctx,
+        exec_triple = triple(ctx.attr.exec_triple),
         target_triple = target_triple,
         version = version,
         iso_date = iso_date,
