@@ -270,7 +270,10 @@ def collect_deps(
         else:
             crate_deps.append(dep)
 
-    aliases = {k.label: v for k, v in aliases.items()}
+    aliases = {
+        k[rust_common.crate_info].owner if rust_common.crate_info in k else k.label: v
+        for k, v in aliases.items()
+    }
     for dep in crate_deps:
         crate_info = dep.crate_info
         dep_info = dep.dep_info
@@ -1585,7 +1588,6 @@ def rustc_compile_action(
         elif toolchain.target_os in ["macos", "darwin"]:
             dsym_folder = ctx.actions.declare_directory(crate_info.output.basename + ".dSYM", sibling = crate_info.output)
             action_outputs.append(dsym_folder)
-
 
     if ctx.executable._process_wrapper:
         # Run as normal
