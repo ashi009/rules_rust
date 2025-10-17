@@ -6,7 +6,7 @@ load("//crate_universe/private:urls.bzl", "CARGO_BAZEL_SHA256S", "CARGO_BAZEL_UR
 load("//rust/platform:triple.bzl", "get_host_triple")
 
 def _local_crate_mirror_impl(repository_ctx):
-    path = repository_ctx.path(repository_ctx.attr.path)
+    path = repository_ctx.workspace_root.get_child(repository_ctx.attr.path)
 
     host_triple = get_host_triple(repository_ctx)
 
