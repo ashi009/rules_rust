@@ -30,6 +30,7 @@ load(
     "lto",
     "no_std",
     "pipelined_compilation",
+    "pipelined_compilation_worker",
     "rename_first_party_crates",
     "rustc_output_diagnostics",
     "rustfmt_toml",
@@ -116,6 +117,13 @@ lto()
 no_std()
 
 pipelined_compilation()
+
+pipelined_compilation_worker()
+
+config_setting(
+    name = "pipelined_compilation_worker_setting",
+    flag_values = {":pipelined_compilation_worker": "True"},
+)
 
 rename_first_party_crates()
 
