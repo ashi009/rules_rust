@@ -635,8 +635,14 @@ RUSTC_ATTRS = {
     "_per_crate_rustc_flag": attr.label(
         default = Label("//rust/settings:experimental_per_crate_rustc_flag"),
     ),
+    "_pipelined_compilation_worker": attr.label(
+        default = Label("//rust/settings:pipelined_compilation_worker"),
+    ),
     "_process_wrapper": attr.label(
-        doc = "A process wrapper for running rustc on all platforms.",
+        doc = "A process wrapper for running rustc on all platforms. When " +
+              "`--@rules_rust//rust/settings:pipelined_compilation_worker=True`, " +
+              "the same binary enters persistent-worker mode and multiplexes " +
+              "metadata + link phases of each crate through a single rustc.",
         default = Label("//util/process_wrapper"),
         executable = True,
         allow_single_file = True,

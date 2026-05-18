@@ -259,6 +259,15 @@ _RESOURCE_SETS = {
     64: _resource_set_cpu_64,
 }
 
+def _resource_set_pseudo(_os_name, _inputs):
+    """Claim ~no resources. Used for the `Rustc` (link-phase) action when the
+    persistent-worker dedup is in effect: the actual rustc invocation runs
+    inside the `RustcMetadata` action's worker request and the link-phase
+    request just blocks on its rlib signal, so the two actions together
+    should account for one rustc, not two. Without this override bazel
+    reserves 2 CPUs per pipelined library and under-utilises the host."""
+    return {"cpu": 0, "memory": 0}
+
 def is_codegen_units_enabled(toolchain):
     """Check whether or not codegen-units should be applied by the toolchain.
 
@@ -294,3 +303,19 @@ def get_rustc_resource_set(toolchain):
         return _RESOURCE_SETS[len(_RESOURCE_SETS)]
 
     return _RESOURCE_SETS[codegen_units]
+
+def get_rustc_link_resource_set(toolchain, dedup_with_worker):
+    """Resource set for the `Rustc` (link-phase) action.
+
+    Args:
+        toolchain (rust_toolchain): The current toolchain.
+        dedup_with_worker (bool): True when this action piggybacks on the
+            sibling `RustcMetadata` action's persistent-worker rustc
+            invocation via the worker's per-crate dedup.
+
+    Returns:
+        Optional[Callable]: A resource set callback.
+    """
+    if dedup_with_worker:
+        return _resource_set_pseudo
+    return get_rustc_resource_set(toolchain)

@@ -122,6 +122,21 @@ def pipelined_compilation():
         build_setting_default = False,
     )
 
+def pipelined_compilation_worker():
+    """When set together with `pipelined_compilation`, route the RustcMetadata and \
+Rustc actions through `process_wrapper` running as a Bazel persistent worker. The \
+worker spawns ONE rustc per crate with `--emit=metadata,link`, returns the metadata \
+phase the moment rustc emits `emit=metadata`, and harvests the rlib for the link phase \
+from the same rustc invocation.
+
+    This saves roughly 30-45% of total rustc CPU for libraries (no duplicate type-check), \
+and removes the SIGKILL-on-metadata mechanism that makes pipelining unusable on Windows.
+    """
+    bool_flag(
+        name = "pipelined_compilation_worker",
+        build_setting_default = False,
+    )
+
 # buildifier: disable=unnamed-macro
 def experimental_use_cc_common_link():
     """A flag to control whether to link rust_binary and rust_test targets using \

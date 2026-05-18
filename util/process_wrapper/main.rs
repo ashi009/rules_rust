@@ -17,6 +17,7 @@ mod options;
 mod output;
 mod rustc;
 mod util;
+mod worker;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -119,6 +120,14 @@ fn process_line(
 
 fn main() -> Result<(), ProcessWrapperError> {
     let opts = options().map_err(|e| ProcessWrapperError(e.to_string()))?;
+
+    // Persistent-worker mode (Bazel set `--persistent_worker`): dispatch to the
+    // multiplex orchestrator, which reuses options() for `--subst`, `--env-file`,
+    // executable resolution, etc. and shares rustc-JSON parsing with the one-shot
+    // path below.
+    if opts.persistent_worker {
+        return worker::run(opts).map_err(|e| ProcessWrapperError(e.to_string()));
+    }
 
     let mut command = Command::new(opts.executable);
     command
