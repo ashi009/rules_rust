@@ -49,6 +49,13 @@ pub(crate) struct Options {
     pub(crate) rustc_quit_on_rmeta: bool,
     // This controls the output format of rustc messages.
     pub(crate) rustc_output_format: Option<rustc::ErrorFormat>,
+    // True if `--persistent_worker` appeared in argv. Indicates the binary should
+    // enter Bazel persistent-worker mode (multiplex orchestrator) rather than the
+    // default one-shot wrapper path.
+    pub(crate) persistent_worker: bool,
+    // `--subst key=val` mappings already resolved (e.g., `pwd=<cwd>`). Exposed so
+    // the worker can apply per-WorkRequest substitution.
+    pub(crate) subst_mappings: Vec<(String, String)>,
 }
 
 pub(crate) fn options() -> Result<Options, OptionError> {
@@ -115,8 +122,21 @@ pub(crate) fn options() -> Result<Options, OptionError> {
         &mut rustc_output_format_raw,
     );
 
+    // `--persistent_worker` is a bare flag (no value) appended by Bazel when
+    // launching a worker. Detect and strip it before option parsing so the
+    // standard flag parser (which expects `--flag value` pairs) doesn't choke.
+    let mut argv: Vec<String> = env::args().collect();
+    let persistent_worker = argv
+        .iter()
+        .position(|a| a == "--persistent_worker")
+        .map(|i| {
+            argv.remove(i);
+            true
+        })
+        .unwrap_or(false);
+
     let mut child_args = match flags
-        .parse(env::args().collect())
+        .parse(argv)
         .map_err(OptionError::FlagError)?
     {
         ParseOutcome::Help(help) => {
@@ -212,6 +232,8 @@ pub(crate) fn options() -> Result<Options, OptionError> {
         output_file,
         rustc_quit_on_rmeta,
         rustc_output_format,
+        persistent_worker,
+        subst_mappings,
     })
 }
 
@@ -229,7 +251,7 @@ fn args_from_file(paths: Vec<String>) -> Result<Vec<String>, OptionError> {
     Ok(args)
 }
 
-fn env_from_files(paths: Vec<String>) -> Result<HashMap<String, String>, OptionError> {
+pub(crate) fn env_from_files(paths: Vec<String>) -> Result<HashMap<String, String>, OptionError> {
     let mut env_vars = HashMap::new();
     for path in paths.into_iter() {
         let lines = read_file_to_array(&path).map_err(OptionError::Generic)?;
@@ -243,7 +265,7 @@ fn env_from_files(paths: Vec<String>) -> Result<HashMap<String, String>, OptionE
     Ok(env_vars)
 }
 
-fn prepare_arg(mut arg: String, subst_mappings: &[(String, String)]) -> String {
+pub(crate) fn prepare_arg(mut arg: String, subst_mappings: &[(String, String)]) -> String {
     for (f, replace_with) in subst_mappings {
         let from = format!("${{{f}}}");
         arg = arg.replace(&from, replace_with);
