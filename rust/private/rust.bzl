@@ -24,6 +24,7 @@ load(
     "CrateGroupInfo",
     "CrateInfo",
     "LintsInfo",
+    "ProcMacroDependentConfigInfo",
     "UnstableRustFeaturesInfo",
 )
 load(
@@ -158,6 +159,16 @@ def _rust_proc_macro_impl(ctx):
     """
     return _rust_library_common(ctx, "proc-macro")
 
+def _proc_macro_dependent_config(ctx, crate_type):
+    """Forward the ProcMacroDependentConfigInfo from a proc-macro's
+    `experimental_dependent_config` target, or None when unset / not a proc-macro."""
+    if crate_type != "proc-macro":
+        return None
+    cfg = getattr(ctx.attr, "experimental_dependent_config", None)
+    if not cfg:
+        return None
+    return cfg[ProcMacroDependentConfigInfo]
+
 def _rust_library_common(ctx, crate_type):
     """The common implementation of the library-like rules.
 
@@ -246,6 +257,10 @@ def _rust_library_common(ctx, crate_type):
             compile_data_targets = depset(ctx.attr.compile_data),
             owner = ctx.label,
             cfgs = _collect_cfgs(ctx, toolchain, crate_root, crate_type, crate_is_test = False),
+            # Carried on CrateInfo (not a standalone provider) so it survives the
+            # `alias` a dependent uses to reach a vendored proc-macro — `alias`
+            # forwards CrateInfo but not arbitrary custom providers.
+            dependent_config = _proc_macro_dependent_config(ctx, crate_type),
         ),
     )
 
@@ -1128,6 +1143,12 @@ rust_proc_macro = rule(
                 linking a native library.
             """),
             cfg = _proc_macro_dep_transition,
+        ),
+        experimental_dependent_config = attr.label(
+            providers = [ProcMacroDependentConfigInfo],
+            doc = "EXPERIMENTAL. Target providing ProcMacroDependentConfigInfo: " +
+                  "output captures applied to every dependent of this proc-macro " +
+                  "(e.g. napi-rs type-def capture).",
         ),
     ),
     fragments = ["cpp"],

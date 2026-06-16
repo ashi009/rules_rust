@@ -805,6 +805,7 @@ impl Renderer {
                 ),
                 platforms,
             ),
+            experimental_dependent_config: krate.common_attrs.experimental_dependent_config.clone(),
             srcs: target.srcs.clone(),
             tags: {
                 let mut tags = BTreeSet::from_iter(krate.common_attrs.tags.iter().cloned());

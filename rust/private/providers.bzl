@@ -25,6 +25,7 @@ CrateInfo = provider(
         "compile_data": "depset[File]: Compile data required by this crate.",
         "compile_data_targets": "depset[Label]: Compile data targets required by this crate.",
         "data": "depset[File]: Runtime data associated with the target. Not passed to `Rustc` actions, except for `proc-macro` targets where `Rustc` is the runtime.",
+        "dependent_config": "ProcMacroDependentConfigInfo | None. On CrateInfo so it survives `alias`.",
         "deps": "depset[DepVariantInfo]: This crate's direct (rust or cc) dependencies' providers.",
         "edition": "str: The edition of this crate.",
         "is_test": "bool: If the crate is being compiled in a test context",
@@ -233,4 +234,14 @@ AllocatorLibrariesImplInfo = provider(
 UnstableRustFeaturesInfo = provider(
     doc = "UnstableRustFeaturesInfo contains a function mapping build targets to unstable features approved for use. Only works on nightly toolchains. May return the special value \"__all__\" to allow all unstable features for the target.",
     fields = {"unstable_rust_features_config": "Callable[[Label], List[string]] Returns a list of unstable features approved for use for the given build target."},
+)
+
+ProcMacroDependentConfigInfo = provider(
+    doc = "Config a rust_proc_macro applies to its dependents. Experimental.",
+    fields = {"configure": "fn(capture) -> struct(rustc_env, rustc_flags)"},
+)
+
+ProcMacroDependentOutputsInfo = provider(
+    doc = "Outputs captured from dependent-config proc-macros during a compile.",
+    fields = {"outputs": "dict[Label, depset[File]] keyed by producing-macro CrateInfo owner"},
 )

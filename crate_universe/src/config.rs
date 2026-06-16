@@ -290,6 +290,10 @@ pub(crate) struct CrateAnnotations {
     /// [rustc_flags](https://bazelbuild.github.io/rules_rust/defs.html#rust_library-rustc_flags) attribute.
     pub(crate) rustc_flags: Option<Select<Vec<String>>>,
 
+    /// EXPERIMENTAL. Label of a `ProcMacroDependentConfigInfo` target for a
+    /// proc-macro's `experimental_dependent_config` attribute.
+    pub(crate) experimental_dependent_config: Option<String>,
+
     /// Additional dependencies to pass to a build script's
     /// [deps](https://bazelbuild.github.io/rules_rust/cargo.html#cargo_build_script-deps) attribute.
     pub(crate) build_script_deps: Option<Select<BTreeSet<Label>>>,
@@ -425,6 +429,7 @@ impl Add for CrateAnnotations {
             rustc_env: select_merge(self.rustc_env, rhs.rustc_env),
             rustc_env_files: select_merge(self.rustc_env_files, rhs.rustc_env_files),
             rustc_flags: select_merge(self.rustc_flags, rhs.rustc_flags),
+            experimental_dependent_config: self.experimental_dependent_config.or(rhs.experimental_dependent_config),
             build_script_deps: select_merge(self.build_script_deps, rhs.build_script_deps),
             build_script_link_deps: select_merge(self.build_script_link_deps, rhs.build_script_link_deps),
             build_script_proc_macro_deps: select_merge(self.build_script_proc_macro_deps, rhs.build_script_proc_macro_deps),

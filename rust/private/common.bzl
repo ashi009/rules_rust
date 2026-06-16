@@ -24,6 +24,7 @@ In the Bazel lingo, `rust_common` gives the access to the Rust Sandwich API.
 """
 
 load(":providers.bzl", "CrateGroupInfo", "CrateInfo", "DepInfo", "DepVariantInfo", "StdLibInfo", "TestCrateInfo")
+load(":providers.bzl", "ProcMacroDependentConfigInfo", "ProcMacroDependentOutputsInfo")
 
 # This constant only represents the default value for attributes and macros
 # defined in `rules_rust`. Like any attribute public attribute, it can be
@@ -61,6 +62,8 @@ def _create_crate_info(**kwargs):
         kwargs.update({"rustc_env_files": []})
     if not "data" in kwargs:
         kwargs.update({"data": depset([])})
+    if not "dependent_config" in kwargs:
+        kwargs.update({"dependent_config": None})
     return CrateInfo(**kwargs)
 
 rust_common = struct(
@@ -71,6 +74,8 @@ rust_common = struct(
     stdlib_info = StdLibInfo,
     test_crate_info = TestCrateInfo,
     crate_group_info = CrateGroupInfo,
+    proc_macro_dependent_config_info = ProcMacroDependentConfigInfo,
+    proc_macro_dependent_outputs_info = ProcMacroDependentOutputsInfo,
     default_version = DEFAULT_RUST_VERSION,
 )
 

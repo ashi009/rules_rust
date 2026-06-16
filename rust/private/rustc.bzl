@@ -34,6 +34,7 @@ load(
     "AllocatorLibrariesInfo",
     "AlwaysEnableMetadataOutputGroupsInfo",
     "LintsInfo",
+    "ProcMacroDependentOutputsInfo",
     "RustcOutputDiagnosticsInfo",
     "UnstableRustFeaturesInfo",
     _BuildInfo = "BuildInfo",
@@ -1354,6 +1355,21 @@ def collect_extra_rustc_flags(ctx, toolchain, crate_root, crate_type):
 
     return flags
 
+def _dependent_capture(ctx, crate_info, pm_crate_info, action_outputs, dependent_outputs):
+    """Capability handed to a proc-macro's `configure`."""
+
+    def declare_dir(name):
+        # Namespace so two capturing macros on one crate cannot collide.
+        output_dir = ctx.actions.declare_directory(
+            "{}.{}.{}".format(crate_info.name, pm_crate_info.name, name),
+            sibling = crate_info.output,
+        )
+        action_outputs.append(output_dir)
+        dependent_outputs.setdefault(pm_crate_info.owner, []).append(output_dir)
+        return output_dir
+
+    return struct(declare_dir = declare_dir)
+
 def rustc_compile_action(
         *,
         ctx,
@@ -1573,6 +1589,29 @@ def rustc_compile_action(
     action_outputs = list(outputs)
     if rustc_output:
         action_outputs.append(rustc_output)
+
+    # Apply each proc-macro dep's dependent_config (rules_rust#2561).
+    dependent_outputs = {}
+    for aliasable in dep_info.direct_crates.to_list():
+        pm_crate_info = aliasable.dep
+        decl = getattr(pm_crate_info, "dependent_config", None)
+        if not decl:
+            continue
+        if build_metadata:
+            fail("Capturing dependent output from {} requires a single rustc ".format(pm_crate_info.owner) +
+                 "action, but {} also builds metadata. Depend on it from ".format(ctx.label) +
+                 "a crate type without pipelined metadata (e.g. staticlib/cdylib) " +
+                 "and disable always_enable_metadata_output_groups.")
+
+        # Hand the macro author's `configure` a capability to declare captured dirs;
+        # it returns the env/flags that point the macro at them. The helper owns
+        # naming/registration so the workspace code stays declarative.
+        capture = _dependent_capture(ctx, crate_info, pm_crate_info, action_outputs, dependent_outputs)
+        config = decl.configure(capture)
+        for env_var, value in config.rustc_env.items():
+            env[env_var] = value
+        for flag in config.rustc_flags:
+            args.rustc_flags.add(flag)
 
     # Get the compilation mode for the current target.
     compilation_mode = get_compilation_mode_opts(ctx, toolchain)
@@ -1843,6 +1882,11 @@ def rustc_compile_action(
 
     if output_group_info:
         providers.append(OutputGroupInfo(**output_group_info))
+
+    if dependent_outputs:
+        providers.append(ProcMacroDependentOutputsInfo(
+            outputs = {label: depset(dirs) for label, dirs in dependent_outputs.items()},
+        ))
 
     # A bit unfortunate, but sidecar the lints info so rustdoc can access the
     # set of lints from the target it is documenting.

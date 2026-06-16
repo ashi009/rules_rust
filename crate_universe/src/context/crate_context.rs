@@ -144,6 +144,11 @@ pub(crate) struct CommonAttributes {
     #[serde(skip_serializing_if = "Select::is_empty")]
     pub(crate) rustc_flags: Select<Vec<String>>,
 
+    // EXPERIMENTAL. Label of a ProcMacroDependentConfigInfo target for the
+    // proc-macro's `experimental_dependent_config` attr.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) experimental_dependent_config: Option<String>,
+
     pub(crate) version: String,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -171,6 +176,7 @@ impl Default for CommonAttributes {
             rustc_env: Default::default(),
             rustc_env_files: Default::default(),
             rustc_flags: Default::default(),
+            experimental_dependent_config: Default::default(),
             version: Default::default(),
             tags: Default::default(),
         }
@@ -646,6 +652,11 @@ impl CrateContext {
             if let Some(extra) = &crate_extra.rustc_env_files {
                 self.common_attrs.rustc_env_files =
                     Select::merge(self.common_attrs.rustc_env_files, extra.clone());
+            }
+
+            // Proc-macro dependent config (experimental_dependent_config)
+            if let Some(extra) = &crate_extra.experimental_dependent_config {
+                self.common_attrs.experimental_dependent_config = Some(extra.clone());
             }
 
             // Build script Attributes

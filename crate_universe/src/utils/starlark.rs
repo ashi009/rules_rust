@@ -210,6 +210,8 @@ pub(crate) struct CommonAttrs {
     pub(crate) rustc_env_files: SelectSet<String>,
     #[serde(skip_serializing_if = "SelectList::is_empty")]
     pub(crate) rustc_flags: SelectList<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) experimental_dependent_config: Option<String>,
     pub(crate) srcs: Glob,
     #[serde(skip_serializing_if = "Set::is_empty")]
     pub(crate) tags: Set<String>,

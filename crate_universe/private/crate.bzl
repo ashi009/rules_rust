@@ -121,6 +121,7 @@ def _annotation(
         rustc_env = None,
         rustc_env_files = None,
         rustc_flags = None,
+        experimental_dependent_config = None,
         shallow_since = None,
         override_targets = None):
     """A collection of extra attributes and settings for a particular crate
@@ -229,6 +230,7 @@ def _annotation(
             rustc_env = rustc_env,
             rustc_env_files = _stringify_list(rustc_env_files),
             rustc_flags = rustc_flags,
+            experimental_dependent_config = _stringify_label(experimental_dependent_config),
             shallow_since = shallow_since,
             override_targets = override_targets,
         ),
