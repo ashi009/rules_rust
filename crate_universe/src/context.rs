@@ -207,8 +207,8 @@ impl Context {
     pub(crate) fn workspace_member_deps(&self) -> BTreeSet<CrateDependency> {
         self.workspace_members
             .keys()
-            .map(move |id| &self.crates[id])
-            .flat_map(|ctx| {
+            .flat_map(|id| {
+                let ctx = &self.crates[id];
                 IntoIterator::into_iter([
                     &ctx.common_attrs.deps,
                     &ctx.common_attrs.deps_dev,
@@ -221,6 +221,12 @@ impl Context {
                         .iter()
                         .flat_map(|attrs| attrs.deps.values()),
                 )
+                // A library crate with a build script depends on its own
+                // `build_script_build` target, which appears here as a
+                // self-referential dependency. That is internal wiring, not a
+                // workspace dependency, so drop it; otherwise it produces a
+                // spurious crate-hub alias for the member itself.
+                .filter(move |dep| &dep.id != id)
             })
             .collect()
     }
