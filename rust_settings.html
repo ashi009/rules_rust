@@ -1,0 +1,559 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rust Settings - rules_rust</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">rules_rust</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/bazelbuild/rules_rust" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<h1 id="rust-settings"><a class="header" href="#rust-settings">Rust settings</a></h1>
+<p>Definitions for all <code>@rules_rust//rust</code> settings</p>
+<p><a id="always_enable_metadata_output_groups"></a></p>
+<h2 id="always_enable_metadata_output_groups"><a class="header" href="#always_enable_metadata_output_groups">always_enable_metadata_output_groups</a></h2>
+<pre>
+--@rules_rust//rust/settings:always_enable_metadata_output_groups
+</pre>
+<p>A flag to enable the <code>always_enable_metadata_output_groups</code> setting.</p>
+<p>If this flag is true, all rules will support the <code>metadata</code> and
+<code>rustc_rmeta_output</code> output groups.</p>
+<p><a id="capture_clippy_output"></a></p>
+<h2 id="capture_clippy_output"><a class="header" href="#capture_clippy_output">capture_clippy_output</a></h2>
+<pre>
+--@rules_rust//rust/settings:capture_clippy_output
+</pre>
+<p>Control whether to print clippy output or store it to a file, using the configured error_format.</p>
+<p><a id="clippy_error_format"></a></p>
+<h2 id="clippy_error_format"><a class="header" href="#clippy_error_format">clippy_error_format</a></h2>
+<pre>
+--@rules_rust//rust/settings:clippy_error_format
+</pre>
+<p>This setting may be changed from the command line to generate machine readable errors.</p>
+<p><a id="clippy_flag"></a></p>
+<h2 id="clippy_flag"><a class="header" href="#clippy_flag">clippy_flag</a></h2>
+<pre>
+--@rules_rust//rust/settings:clippy_flag
+</pre>
+<p>Add a custom clippy flag from the command line with <code>--@rules_rust//rust/settings:clippy_flag</code>.</p>
+<p>Multiple uses are accumulated and appended after the <code>extra_rustc_flags</code>.</p>
+<p><a id="clippy_flags"></a></p>
+<h2 id="clippy_flags"><a class="header" href="#clippy_flags">clippy_flags</a></h2>
+<pre>
+--@rules_rust//rust/settings:clippy_flags
+</pre>
+<p>This setting may be used to pass extra options to clippy from the command line.</p>
+<p>It applies across all targets.</p>
+<p><a id="clippy_output_diagnostics"></a></p>
+<h2 id="clippy_output_diagnostics"><a class="header" href="#clippy_output_diagnostics">clippy_output_diagnostics</a></h2>
+<pre>
+--@rules_rust//rust/settings:clippy_output_diagnostics
+</pre>
+<p>A flag to enable the <code>clippy_output_diagnostics</code> setting.</p>
+<p>If this flag is true, rules_rust will save clippy json output (suitable for consumption
+by rust-analyzer) in a file, available from the <code>clippy_output</code> output group. This is the
+clippy equivalent of <code>rustc_output_diagnostics</code>.</p>
+<p><a id="clippy_toml"></a></p>
+<h2 id="clippy_toml"><a class="header" href="#clippy_toml">clippy_toml</a></h2>
+<pre>
+--@rules_rust//rust/settings:clippy_toml
+</pre>
+<p>This setting is used by the clippy rules. See https://bazelbuild.github.io/rules_rust/rust_clippy.html</p>
+<p>Note that this setting is actually called <code>clippy.toml</code>.</p>
+<p><a id="codegen_units"></a></p>
+<h2 id="codegen_units"><a class="header" href="#codegen_units">codegen_units</a></h2>
+<pre>
+--@rules_rust//rust/settings:codegen_units
+</pre>
+<p>The default value for <code>--codegen-units</code> which also affects resource allocation for rustc actions.</p>
+<p>Note that any value 0 or less will prevent this flag from being passed by Bazel and allow rustc to
+perform it's default behavior.</p>
+<p>https://doc.rust-lang.org/rustc/codegen-options/index.html#codegen-units</p>
+<p><a id="collect_cfgs"></a></p>
+<h2 id="collect_cfgs"><a class="header" href="#collect_cfgs">collect_cfgs</a></h2>
+<pre>
+--@rules_rust//rust/settings:collect_cfgs
+</pre>
+<p>Enable collection of cfg flags with results stored in CrateInfo.cfgs.</p>
+<p><a id="default_allocator_library"></a></p>
+<h2 id="default_allocator_library"><a class="header" href="#default_allocator_library">default_allocator_library</a></h2>
+<pre>
+--@rules_rust//rust/settings:default_allocator_library
+</pre>
+<p>A flag that determines the default allocator library for <code>rust_toolchain</code> targets.</p>
+<p><a id="error_format"></a></p>
+<h2 id="error_format"><a class="header" href="#error_format">error_format</a></h2>
+<pre>
+--@rules_rust//rust/settings:error_format
+</pre>
+<p>This setting may be changed from the command line to generate machine readable errors.</p>
+<p><a id="experimental_compile_rustdoc_tests"></a></p>
+<h2 id="experimental_compile_rustdoc_tests"><a class="header" href="#experimental_compile_rustdoc_tests">experimental_compile_rustdoc_tests</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_compile_rustdoc_tests
+</pre>
+<p>A flag to control whether <code>rust_doc_test</code> compiles doc tests during the build phase.</p>
+<p>When enabled and the toolchain channel is "nightly", <code>rust_doc_test</code> will compile     doc test binaries using <code>rustdoc --test --no-run</code> during <code>bazel build</code> and only     execute them during <code>bazel test</code>. This requires a nightly Rust toolchain because     <code>--no-run</code> depends on <code>-Zunstable-options</code>.</p>
+<p>When enabled with a non-nightly toolchain, the existing behavior is silently used.</p>
+<p><a id="experimental_link_std_dylib"></a></p>
+<h2 id="experimental_link_std_dylib"><a class="header" href="#experimental_link_std_dylib">experimental_link_std_dylib</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_link_std_dylib
+</pre>
+<p>A flag to control whether to link libstd dynamically.</p>
+<p><a id="experimental_per_crate_rustc_flag"></a></p>
+<h2 id="experimental_per_crate_rustc_flag"><a class="header" href="#experimental_per_crate_rustc_flag">experimental_per_crate_rustc_flag</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_per_crate_rustc_flag
+</pre>
+<p>Add additional rustc_flag to matching crates from the command line with <code>--@rules_rust//rust/settings:experimental_per_crate_rustc_flag</code>.</p>
+<p>The expected flag format is prefix_filter@flag, where any crate with a label or execution path starting
+with the prefix filter will be built with the given flag. The label matching uses the canonical form of
+the label (i.e <code>//package:label_name</code>). The execution path is the relative path to your workspace directory
+including the base name (including extension) of the crate root. This flag is not applied to the exec
+configuration (proc-macros, cargo_build_script, etc). Multiple uses are accumulated.</p>
+<p><a id="experimental_use_allocator_libraries_with_mangled_symbols"></a></p>
+<h2 id="experimental_use_allocator_libraries_with_mangled_symbols"><a class="header" href="#experimental_use_allocator_libraries_with_mangled_symbols">experimental_use_allocator_libraries_with_mangled_symbols</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
+</pre>
+<p>A flag used to select allocator libraries implemented in rust that are compatible with the rustc allocator symbol mangling.</p>
+<p>The symbol mangling mechanism relies on unstable language features and requires a nightly rustc from 2025-04-05 or later.</p>
+<p>Rustc generates references to internal allocator symbols when building rust
+libraries.  At link time, rustc generates the definitions of these symbols.
+When rustc is not used as the final linker, we need to generate the
+definitions ourselves.  This happens for example when a rust_library is
+used as a dependency of a rust_binary, or when the
+experimental_use_cc_common_link setting is used.</p>
+<p>For older versions of rustc, the allocator symbol definitions can be provided
+via the <code>rust_toolchain</code>'s <code>allocator_library</code> or <code>global_allocator_library</code>
+attributes, with sample targets like <code>@rules_rust//ffi/cc/allocator_library</code>
+and <code>@rules_rust//ffi/cc/global_allocator_library</code>.</p>
+<p>Recent versions of rustc started mangling these allocator symbols (https://github.com/rust-lang/rust/pull/127173).
+The mangling uses a scheme that is specific to the exact version of the compiler.
+This makes the cc allocator library definitions ineffective. When rustc builds a
+staticlib it provides the mapping definitions. We rely on this and build an empty
+staticlib as a basis for the allocator definitions.</p>
+<p>Since the new symbol definitions are written in rust, we cannot just attach
+them as attributes on the <code>rust_toolchain</code> as the old cc versions, as that
+would create a build graph cycle (we need a <code>rust_toolchain</code> to build a
+<code>rust_library</code>, so the allocator library cannot be a rust_library directly).</p>
+<p>The bootstrapping cycle can be avoided by defining a separate internal
+"initial" rust toolchain specifically for building the rust allocator libraries,
+and use a transition to attach the generated libraries to the "main" rust
+toolchain. But that duplicates the whole sub-graph of the build around the
+rust toolchains, repository and supporting tools used for them.</p>
+<p>Instead, we define a new custom <code>rust_allocator_library</code> rule, which exposes
+the result of building the rust allocator libraries via a provider, which
+can be consumed by the rust build actions. We attach an instance of this
+as a common attribute to the rust rule set.</p>
+<p><strong>PARAMETERS</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Options</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="experimental_use_allocator_libraries_with_mangled_symbols-name"></a>name</td><td style="text-align: left"><p align="center"> - </p></td><td style="text-align: left"><code>"experimental_use_allocator_libraries_with_mangled_symbols"</code></td></tr>
+</tbody></table>
+</div>
+<p><a id="experimental_use_cc_common_link"></a></p>
+<h2 id="experimental_use_cc_common_link"><a class="header" href="#experimental_use_cc_common_link">experimental_use_cc_common_link</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_use_cc_common_link
+</pre>
+<p>A flag to control whether to link rust_binary and rust_test targets using     cc_common.link instead of rustc.</p>
+<p><a id="experimental_use_coverage_metadata_files"></a></p>
+<h2 id="experimental_use_coverage_metadata_files"><a class="header" href="#experimental_use_coverage_metadata_files">experimental_use_coverage_metadata_files</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_use_coverage_metadata_files
+</pre>
+<p>A flag to have coverage tooling added as <code>coverage_common.instrumented_files_info.metadata_files</code> instead of     reporting tools like <code>llvm-cov</code> and <code>llvm-profdata</code> as runfiles to each test.</p>
+<p><a id="experimental_use_global_allocator"></a></p>
+<h2 id="experimental_use_global_allocator"><a class="header" href="#experimental_use_global_allocator">experimental_use_global_allocator</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_use_global_allocator
+</pre>
+<p>A flag to indicate that a global allocator is in use when using <code>--@rules_rust//rust/settings:experimental_use_cc_common_link</code></p>
+<p>Users need to specify this flag because rustc generates different set of symbols at link time when a global allocator is in use.
+When the linking is not done by rustc, the <code>rust_toolchain</code> itself provides the appropriate set of symbols.</p>
+<p><a id="experimental_use_sh_toolchain_for_bootstrap_process_wrapper"></a></p>
+<h2 id="experimental_use_sh_toolchain_for_bootstrap_process_wrapper"><a class="header" href="#experimental_use_sh_toolchain_for_bootstrap_process_wrapper">experimental_use_sh_toolchain_for_bootstrap_process_wrapper</a></h2>
+<pre>
+--@rules_rust//rust/settings:experimental_use_sh_toolchain_for_bootstrap_process_wrapper
+</pre>
+<p>A flag to control whether the shell path from a shell toolchain (<code>@bazel_tools//tools/sh:toolchain_type</code>)     is embedded into the bootstrap process wrapper for the <code>.sh</code> file.</p>
+<p><a id="extra_exec_rustc_env"></a></p>
+<h2 id="extra_exec_rustc_env"><a class="header" href="#extra_exec_rustc_env">extra_exec_rustc_env</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_exec_rustc_env
+</pre>
+<p>This setting may be used to pass extra environment variables to rustc from the command line in exec configuration.</p>
+<p>It applies to tools built and run during the build process, such as proc-macros and build scripts.
+This can be useful for enabling features that are needed during tool compilation.</p>
+<p><a id="extra_exec_rustc_flag"></a></p>
+<h2 id="extra_exec_rustc_flag"><a class="header" href="#extra_exec_rustc_flag">extra_exec_rustc_flag</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_exec_rustc_flag
+</pre>
+<p>Add additional rustc_flags in the exec configuration from the command line with <code>--@rules_rust//rust/settings:extra_exec_rustc_flag</code>.</p>
+<p>Multiple uses are accumulated and appended after the extra_exec_rustc_flags.</p>
+<p><a id="extra_exec_rustc_flags"></a></p>
+<h2 id="extra_exec_rustc_flags"><a class="header" href="#extra_exec_rustc_flags">extra_exec_rustc_flags</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_exec_rustc_flags
+</pre>
+<p>This setting may be used to pass extra options to rustc from the command line in exec configuration.</p>
+<p>It applies across all targets whereas the rustc_flags option on targets applies only
+to that target. This can be useful for passing build-wide options such as LTO.</p>
+<p><a id="extra_rustc_env"></a></p>
+<h2 id="extra_rustc_env"><a class="header" href="#extra_rustc_env">extra_rustc_env</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_rustc_env
+</pre>
+<p>This setting may be used to pass extra environment variables to rustc from the command line in non-exec configuration.</p>
+<p>It applies across all targets whereas environment variables set in a specific rule apply only to that target.
+This can be useful for setting build-wide env flags such as <code>RUSTC_BOOTSTRAP=1</code>.</p>
+<p><a id="extra_rustc_flag"></a></p>
+<h2 id="extra_rustc_flag"><a class="header" href="#extra_rustc_flag">extra_rustc_flag</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_rustc_flag
+</pre>
+<p>Add additional rustc_flag from the command line with <code>--@rules_rust//rust/settings:extra_rustc_flag</code>.</p>
+<p>Multiple uses are accumulated and appended after the <code>extra_rustc_flags</code>.</p>
+<p><a id="extra_rustc_flags"></a></p>
+<h2 id="extra_rustc_flags"><a class="header" href="#extra_rustc_flags">extra_rustc_flags</a></h2>
+<pre>
+--@rules_rust//rust/settings:extra_rustc_flags
+</pre>
+<p>This setting may be used to pass extra options to rustc from the command line in non-exec configuration.</p>
+<p>It applies across all targets whereas the rustc_flags option on targets applies only
+to that target. This can be useful for passing build-wide options such as LTO.</p>
+<p><a id="incompatible_change_clippy_error_format"></a></p>
+<h2 id="incompatible_change_clippy_error_format"><a class="header" href="#incompatible_change_clippy_error_format">incompatible_change_clippy_error_format</a></h2>
+<pre>
+--@rules_rust//rust/settings:incompatible_change_clippy_error_format
+</pre>
+<p>A flag to enable the <code>clippy_error_format</code> setting.</p>
+<p>If this flag is true, Clippy uses the format set in <code>clippy_error_format</code> to
+format its diagnostics; otherwise, it uses the format set in <code>error_format</code>.</p>
+<p><a id="incompatible_do_not_include_data_in_compile_data"></a></p>
+<h2 id="incompatible_do_not_include_data_in_compile_data"><a class="header" href="#incompatible_do_not_include_data_in_compile_data">incompatible_do_not_include_data_in_compile_data</a></h2>
+<pre>
+--@rules_rust//rust/settings:incompatible_do_not_include_data_in_compile_data
+</pre>
+<p>A flag to control whether to include data files in compile_data.</p>
+<p><a id="incompatible_do_not_include_transitive_data_in_compile_inputs"></a></p>
+<h2 id="incompatible_do_not_include_transitive_data_in_compile_inputs"><a class="header" href="#incompatible_do_not_include_transitive_data_in_compile_inputs">incompatible_do_not_include_transitive_data_in_compile_inputs</a></h2>
+<pre>
+--@rules_rust//rust/settings:incompatible_do_not_include_transitive_data_in_compile_inputs
+</pre>
+<p>A flag to control whether transitive data dependencies are included in compile inputs.</p>
+<p><a id="lto"></a></p>
+<h2 id="lto"><a class="header" href="#lto">lto</a></h2>
+<pre>
+--@rules_rust//rust/settings:lto
+</pre>
+<p>A build setting which specifies the link time optimization mode used when building Rust code.</p>
+<p><a id="no_std"></a></p>
+<h2 id="no_std"><a class="header" href="#no_std">no_std</a></h2>
+<pre>
+--@rules_rust//rust/settings:no_std
+</pre>
+<p>This setting may be used to enable builds without the standard library.</p>
+<p>Currently only no_std + alloc is supported, which can be enabled with setting the value to "alloc".
+In the future we could add support for additional modes, e.g "core", "alloc,collections".</p>
+<p><a id="pipelined_compilation"></a></p>
+<h2 id="pipelined_compilation"><a class="header" href="#pipelined_compilation">pipelined_compilation</a></h2>
+<pre>
+--@rules_rust//rust/settings:pipelined_compilation
+</pre>
+<p>When set, this flag causes rustc to emit <code>*.rmeta</code> files and use them for <code>rlib -&gt; rlib</code> dependencies.</p>
+<p>While this involves one extra (short) rustc invocation to build the rmeta file,
+it allows library dependencies to be unlocked much sooner, increasing parallelism during compilation.</p>
+<p><a id="rename_first_party_crates"></a></p>
+<h2 id="rename_first_party_crates"><a class="header" href="#rename_first_party_crates">rename_first_party_crates</a></h2>
+<pre>
+--@rules_rust//rust/settings:rename_first_party_crates
+</pre>
+<p>A flag controlling whether to rename first-party crates such that their names     encode the Bazel package and target name, instead of just the target name.</p>
+<p>First-party vs. third-party crates are identified using the value of
+<code>@rules_rust//settings:third_party_dir</code>.</p>
+<p><a id="require_explicit_unstable_features"></a></p>
+<h2 id="require_explicit_unstable_features"><a class="header" href="#require_explicit_unstable_features">require_explicit_unstable_features</a></h2>
+<pre>
+--@rules_rust//rust/settings:require_explicit_unstable_features
+</pre>
+<p>A flag controlling whether unstable features should be disallowed by default</p>
+<p>If true, an empty <code>-Zallow-features=</code> will be added to the rustc command line whenever no other
+<code>-Zallow-features=</code> is present in the rustc flags. The effect is to disallow all unstable
+features by default, with the possibility to explicitly re-enable them selectively using
+<code>-Zallow-features=...</code>.</p>
+<p><a id="rustc_output_diagnostics"></a></p>
+<h2 id="rustc_output_diagnostics"><a class="header" href="#rustc_output_diagnostics">rustc_output_diagnostics</a></h2>
+<pre>
+--@rules_rust//rust/settings:rustc_output_diagnostics
+</pre>
+<p>This setting may be changed from the command line to generate rustc diagnostics.</p>
+<p><a id="rustfmt_toml"></a></p>
+<h2 id="rustfmt_toml"><a class="header" href="#rustfmt_toml">rustfmt_toml</a></h2>
+<pre>
+--@rules_rust//rust/settings:rustfmt_toml
+</pre>
+<p>This setting is used by the rustfmt rules. See https://bazelbuild.github.io/rules_rust/rust_fmt.html</p>
+<p>Note that this setting is actually called <code>rustfmt.toml</code>.</p>
+<p><a id="third_party_dir"></a></p>
+<h2 id="third_party_dir"><a class="header" href="#third_party_dir">third_party_dir</a></h2>
+<pre>
+--@rules_rust//rust/settings:third_party_dir
+</pre>
+<p>A flag specifying the location of vendored third-party rust crates within this     repository that must not be renamed when <code>rename_first_party_crates</code> is enabled.</p>
+<p>Must be specified as a Bazel package, e.g. "//some/location/in/repo".</p>
+<p><a id="toolchain_generated_sysroot"></a></p>
+<h2 id="toolchain_generated_sysroot"><a class="header" href="#toolchain_generated_sysroot">toolchain_generated_sysroot</a></h2>
+<pre>
+--@rules_rust//rust/settings:toolchain_generated_sysroot
+</pre>
+<p>A flag to set rustc --sysroot flag to the sysroot generated by rust_toolchain.</p>
+<p><a id="toolchain_linker_preference"></a></p>
+<h2 id="toolchain_linker_preference"><a class="header" href="#toolchain_linker_preference">toolchain_linker_preference</a></h2>
+<pre>
+--@rules_rust//rust/settings:toolchain_linker_preference
+</pre>
+<p>A flag to control which linker is preferred for linking Rust binaries.</p>
+<p>Accepts three values:</p>
+<ul>
+<li>"rust": Use <code>rust_toolchain.linker</code> always (e.g., <code>rust-lld</code>). This uses rustc to invoke
+the linker directly.</li>
+<li>"cc": Use the linker provided by the configured <code>cc_toolchain</code>. This uses rustc to invoke
+the C++ toolchain's linker (e.g., <code>clang</code>, <code>gcc</code>, <code>link.exe</code>).</li>
+<li>"none": Default to <code>cc</code> being the preference and falling back to <code>rust</code> if no <code>cc_toolchain</code>
+is available.</li>
+</ul>
+<p><a id="unpretty"></a></p>
+<h2 id="unpretty"><a class="header" href="#unpretty">unpretty</a></h2>
+<pre>
+--@rules_rust//rust/settings:unpretty
+</pre>
+<p>A build setting to control the output of <code>RustUnpretty*</code> actions</p>
+<p>Supported values are:</p>
+<ul>
+<li><code>ast-tree,expanded</code></li>
+<li><code>ast-tree</code></li>
+<li><code>expanded,hygiene</code></li>
+<li><code>expanded,identified</code></li>
+<li><code>expanded</code></li>
+<li><code>hir-tree</code></li>
+<li><code>hir,identified</code></li>
+<li><code>hir,typed</code></li>
+<li><code>hir</code></li>
+<li><code>identified</code></li>
+<li><code>mir-cfg</code></li>
+<li><code>mir</code></li>
+<li><code>normal</code></li>
+</ul>
+<p><a id="zself_profile_events"></a></p>
+<h2 id="zself_profile_events"><a class="header" href="#zself_profile_events">zself_profile_events</a></h2>
+<pre>
+--@rules_rust//rust/settings:zself_profile_events
+</pre>
+<p>Passes -Zself-profile and -Zself-profile-events flags to rustc, requires a nightly toolchain.</p>
+<p><strong>PARAMETERS</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Options</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="zself_profile_events-name"></a>name</td><td style="text-align: left"><p align="center"> - </p></td><td style="text-align: left"><code>"zself_profile_events"</code></td></tr>
+</tbody></table>
+</div>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="settings.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="cargo_settings.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="settings.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="cargo_settings.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
