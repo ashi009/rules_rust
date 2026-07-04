@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "rustc_worker_lib",
+    srcs = [
+        "cache.go",
+        "compile.go",
+        "fsutil.go",
+        "main.go",
+        "request.go",
+        "waiter.go",
+    ],
+    importpath = "github.com/bazelbuild/rules_rust/util/rustc_worker",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_bazelbuild_remote_apis//build/bazel/remote/execution/v2:execution",
+        "@com_github_bazelbuild_remote_apis_sdks//go/pkg/client",
+        "@com_github_bazelbuild_remote_apis_sdks//go/pkg/digest",
+        "@com_github_bazelbuild_remote_apis_sdks//go/pkg/uploadinfo",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)
+
+go_binary(
+    name = "rustc_worker",
+    embed = [":rustc_worker_lib"],
+    visibility = ["//visibility:public"],
+)
