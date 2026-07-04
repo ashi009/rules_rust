@@ -294,3 +294,11 @@ def get_rustc_resource_set(toolchain):
         return _RESOURCE_SETS[len(_RESOURCE_SETS)]
 
     return _RESOURCE_SETS[codegen_units]
+
+def get_rlib_waiter_resource_set(_os_name, _inputs):
+    """Resource set for the rlib-waiter action under pipelined-worker mode.
+
+    The waiter only polls for the worker's completion sentinel and installs
+    the rlib; reserve close-to-zero CPU.
+    """
+    return {"cpu": 0.1, "memory": 16}
