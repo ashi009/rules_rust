@@ -17,6 +17,25 @@ bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "apple_support", version = "1.24.1", repo_name = "build_bazel_apple_support")
 
+# Go deps for //util/rustc_worker (the pipelined-compilation worker).
+bazel_dep(name = "rules_go", version = "0.60.0")
+bazel_dep(name = "gazelle", version = "0.51.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+
+# NOTE: gazelle only accepts gazelle_override tags from the ROOT module, so
+# consuming workspaces must carry these two overrides themselves (remote-apis
+# ships BUILD files referencing @rules_proto and must be regenerated with
+# `build_file_generation = "clean"` + `gazelle:proto disable`, and
+# remote-apis-sdks needs `gazelle:resolve` onto the regenerated targets).
+use_repo(
+    go_deps,
+    "com_github_bazelbuild_remote_apis",
+    "com_github_bazelbuild_remote_apis_sdks",
+    "org_golang_google_grpc",
+)
+
 internal_deps = use_extension("//rust/private:internal_extensions.bzl", "i")
 use_repo(
     internal_deps,

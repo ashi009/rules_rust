@@ -122,6 +122,17 @@ def pipelined_compilation():
         build_setting_default = False,
     )
 
+def pipelined_compilation_worker():
+    """When set together with `pipelined_compilation`, compile rmeta+rlib with a single
+    rustc invocation per crate through a persistent worker (no duplicate type-check).
+    The paired `Rustc` action waits for the rlib via the worker's status sentinel.
+    """
+    bool_flag(
+        name = "pipelined_compilation_worker",
+        build_setting_default = False,
+    )
+
+
 # buildifier: disable=unnamed-macro
 def experimental_use_cc_common_link():
     """A flag to control whether to link rust_binary and rust_test targets using \

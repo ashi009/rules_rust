@@ -31,6 +31,7 @@ load(
     "lto",
     "no_std",
     "pipelined_compilation",
+    "pipelined_compilation_worker",
     "rename_first_party_crates",
     "require_explicit_unstable_features",
     "rustc_output_diagnostics",
@@ -119,6 +120,8 @@ lto()
 no_std()
 
 pipelined_compilation()
+
+pipelined_compilation_worker()
 
 rename_first_party_crates()
 

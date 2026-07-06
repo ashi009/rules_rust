@@ -635,6 +635,14 @@ RUSTC_ATTRS = {
     "_per_crate_rustc_flag": attr.label(
         default = Label("//rust/settings:experimental_per_crate_rustc_flag"),
     ),
+    "_pipelined_compilation_worker": attr.label(
+        default = Label("//rust/settings:pipelined_compilation_worker"),
+    ),
+    "_pipelined_worker": attr.label(
+        default = Label("//util/rustc_worker"),
+        executable = True,
+        cfg = "exec",
+    ),
     "_process_wrapper": attr.label(
         doc = "A process wrapper for running rustc on all platforms.",
         default = Label("//util/process_wrapper"),

@@ -38,6 +38,7 @@ load(
     _BuildInfo = "BuildInfo",
 )
 load(":rustc_resource_set.bzl", "get_rustc_resource_set", "is_codegen_units_enabled")
+load(":rustc_resource_set.bzl", "get_rlib_waiter_resource_set")
 load(":stamp.bzl", "is_stamping_enabled")
 load(
     ":utils.bzl",
@@ -914,6 +915,24 @@ def _extract_allowed_unstable_features_from_flags(rust_flags, all_allowed_unstab
             other_flags.append(flag)
     return other_flags
 
+def _pipelined_worker(ctx):
+    """The pipelined-worker executable, or None when the mode is off."""
+    if not getattr(ctx.attr, "_pipelined_compilation_worker", None):
+        return None
+    if not ctx.attr._pipelined_compilation_worker[BuildSettingInfo].value:
+        return None
+    return getattr(ctx.executable, "_pipelined_worker", None)
+
+def _use_pipelined_worker(ctx, crate_info, build_metadata):
+    """Pipelined-worker mode: one persistent worker request compiles rmeta+rlib
+    with a single rustc invocation; the paired `Rustc` action just waits for
+    the rlib. Only applies to the pipelined rlib case."""
+    return bool(
+        build_metadata and
+        crate_info.metadata_supports_pipelining and
+        _pipelined_worker(ctx),
+    )
+
 def construct_arguments(
         *,
         ctx,
@@ -1002,6 +1021,22 @@ def construct_arguments(
 
     # Wrapper args first
     process_wrapper_flags = ctx.actions.args()
+    rustc_flags = ctx.actions.args()
+
+    use_worker = _use_pipelined_worker(ctx, crate_info, build_metadata)
+
+    # In worker mode the worker is launched with no flags at all (Bazel adds
+    # only --persistent_worker); the per-request param file carries EVERYTHING:
+    # the worker's own flags, then `--`, then a ready-to-run process_wrapper
+    # invocation. Aliasing process_wrapper_flags into the param file routes
+    # every wrapper flag added below into that wrapper section unchanged.
+    if use_worker:
+        rustc_flags.add(ctx.executable._process_wrapper, format = "--process-wrapper=%s")
+        rustc_flags.add(crate_info.output.path, format = "--worker-link-rlib=%s")
+        if build_metadata and crate_info.rustc_rmeta_output:
+            rustc_flags.add(crate_info.rustc_rmeta_output.path, format = "--output-file=%s")
+        rustc_flags.add("--")
+        process_wrapper_flags = rustc_flags
 
     for build_env_file in build_env_files:
         process_wrapper_flags.add("--env-file", build_env_file)
@@ -1056,9 +1091,33 @@ def construct_arguments(
     map_flag = _remove_codegen_units if _will_emit_object_file(emit) else None
 
     # Rustc arguments
-    rustc_flags = ctx.actions.args()
     rustc_flags.set_param_file_format("multiline")
-    rustc_flags.use_param_file("@%s", use_always = False)
+
+    # Always emit a param file when running under a worker: Bazel's worker
+    # strategy expects exactly one `@flagfile` in the request arguments, so the
+    # worker can read per-request flags from a stable location regardless of
+    # input length. Outside worker mode we keep the historical "param file only
+    # when the argv would otherwise exceed the OS limit" behaviour.
+    rustc_flags.use_param_file("@%s", use_always = use_worker)
+    pipelined_env_file = None
+    if use_worker:
+        if build_metadata:
+            # Per-crate env would split the multiplex worker pool (Bazel keys
+            # pools on the action env), so ship it as an --env-file in the
+            # wrapper section of the param file and keep the action env to the
+            # invariant shell-derived entries.
+            per_crate_env = {k: v for k, v in env.items() if k not in ctx.configuration.default_shell_env}
+            per_crate_env["REPOSITORY_NAME"] = ctx.label.workspace_name
+            pipelined_env_file = ctx.actions.declare_file(
+                crate_info.name + ".rustc_env" + ("." + str(output_hash) if output_hash else ""),
+            )
+            ctx.actions.write(
+                pipelined_env_file,
+                "".join(["{}={}\n".format(k, v) for k, v in per_crate_env.items()]),
+            )
+            rustc_flags.add("--env-file", pipelined_env_file)
+        rustc_flags.add("--")
+        rustc_flags.add(tool_path)
     rustc_flags.add(crate_info.root)
     rustc_flags.add(crate_info.name, format = "--crate-name=%s")
     rustc_flags.add(crate_info.type, format = "--crate-type=%s")
@@ -1068,8 +1127,12 @@ def construct_arguments(
 
     if use_json_output:
         # If --error-format was set to json, we just pass the output through
-        # Otherwise process_wrapper uses the "rendered" field.
-        process_wrapper_flags.add("--rustc-output-format", "json" if error_format == "json" else "rendered")
+        # Otherwise process_wrapper uses the "rendered" field. In worker mode
+        # the worker renders diagnostics itself: process_wrapper must stream
+        # rustc's stderr verbatim so the rmeta artifact notification reaches
+        # the worker.
+        if not use_worker:
+            process_wrapper_flags.add("--rustc-output-format", "json" if error_format == "json" else "rendered")
 
         # Configure rustc json output by adding artifact notifications.
         # These will always be filtered out by process_wrapper and will be use to terminate
@@ -1086,11 +1149,12 @@ def construct_arguments(
         error_format = "json"
 
     if build_metadata:
-        # Configure process_wrapper to terminate rustc when metadata are emitted
-        process_wrapper_flags.add("--rustc-quit-on-rmeta", "true")
-        if crate_info.rustc_rmeta_output:
-            process_wrapper_flags.add("--output-file", crate_info.rustc_rmeta_output.path)
-    elif crate_info.rustc_output:
+        if not use_worker:
+            # Configure process_wrapper to terminate rustc when metadata are emitted
+            process_wrapper_flags.add("--rustc-quit-on-rmeta", "true")
+            if crate_info.rustc_rmeta_output:
+                process_wrapper_flags.add("--output-file", crate_info.rustc_rmeta_output.path)
+    elif crate_info.rustc_output and not use_worker:
         process_wrapper_flags.add("--output-file", crate_info.rustc_output.path)
 
     rustc_flags.add(error_format, format = "--error-format=%s")
@@ -1300,7 +1364,8 @@ def construct_arguments(
         process_wrapper_flags = process_wrapper_flags,
         rustc_path = rustc_path,
         rustc_flags = rustc_flags,
-        all = [process_wrapper_flags, rustc_path, rustc_flags],
+        all = [rustc_flags] if use_worker else [process_wrapper_flags, rustc_path, rustc_flags],
+        pipelined_env_file = pipelined_env_file,
     )
 
     return args, env
@@ -1392,6 +1457,8 @@ def rustc_compile_action(
     build_metadata = crate_info.metadata
     rustc_output = crate_info.rustc_output
     rustc_rmeta_output = crate_info.rustc_rmeta_output
+
+    use_worker = _use_pipelined_worker(ctx, crate_info, build_metadata)
 
     # Determine whether to use cc_common.link:
     #  * either if experimental_use_cc_common_link is 1,
@@ -1579,7 +1646,83 @@ def rustc_compile_action(
             dsym_folder = ctx.actions.declare_directory(crate_info.output.basename + ".dSYM", sibling = crate_info.output)
             action_outputs.append(dsym_folder)
 
-    if ctx.executable._process_wrapper:
+    if use_worker:
+        # Pipelined-worker mode (see util/rustc_worker): one WorkRequest
+        # compiles rmeta+rlib with a single rustc run through process_wrapper,
+        # replying when the rmeta lands. The paired `Rustc` action is a
+        # request to the SAME worker (same worker key) that waits in-process
+        # for the compile to finish and installs the rlib; a status-file
+        # fallback covers requests landing on a different worker process.
+        metadata_worker_inputs = compile_inputs
+        if args_metadata.pipelined_env_file:
+            metadata_worker_inputs = depset([args_metadata.pipelined_env_file], transitive = [metadata_worker_inputs])
+        invariant_env = {k: v for k, v in env.items() if k in ctx.configuration.default_shell_env}
+
+        # no-cache on both actions: the rlib travels from the worker to the
+        # waiter through the scratch dir — an undeclared side channel — so
+        # Bazel's action cache must never serve either half of the pair.
+        worker_execution_requirements = {
+            "no-cache": "1",
+            "requires-worker-protocol": "json",
+            "supports-worker-cancellation": "1",
+            "supports-multiplex-workers": "1",
+            "supports-workers": "1",
+            "worker-key-mnemonic": "RustcMetadata",
+        }
+
+        ctx.actions.run(
+            executable = _pipelined_worker(ctx),
+            tools = [ctx.executable._process_wrapper],
+            inputs = metadata_worker_inputs,
+            outputs = [build_metadata] + [x for x in [rustc_rmeta_output] if x],
+            env = invariant_env,
+            arguments = args_metadata.all,
+            mnemonic = "RustcMetadata",
+            progress_message = "Compiling Rust metadata {} {}{} ({} file{})".format(
+                crate_info.type,
+                ctx.label.name,
+                formatted_version,
+                len(srcs),
+                "" if len(srcs) == 1 else "s",
+            ),
+            toolchain = "@rules_rust//rust:toolchain_type",
+            execution_requirements = worker_execution_requirements,
+            resource_set = get_rustc_resource_set(toolchain),
+        )
+
+        # The rmeta input is the dispatch barrier: the waiter request cannot
+        # start before the compile request has replied. Identical startup
+        # argv + env + worker key put it in the same worker pool.
+        waiter_args = ctx.actions.args()
+        waiter_args.set_param_file_format("multiline")
+        waiter_args.use_param_file("@%s", use_always = True)
+        waiter_args.add("--rlib-waiter")
+        waiter_args.add(crate_info.output.path, format = "--waiter-rlib=%s")
+        if rustc_output:
+            waiter_args.add(rustc_output.path, format = "--waiter-stderr=%s")
+        ctx.actions.run(
+            executable = _pipelined_worker(ctx),
+            # Same tools as the compile action: the worker files hash must
+            # match, or Bazel destroys and respawns the worker whenever the
+            # request kind alternates, killing in-flight compiles.
+            tools = [ctx.executable._process_wrapper],
+            inputs = depset([build_metadata]),
+            outputs = action_outputs,
+            env = invariant_env,
+            arguments = [waiter_args],
+            mnemonic = "Rustc",
+            progress_message = "Linking Rust {} {}{} ({} file{})".format(
+                crate_info.type,
+                ctx.label.name,
+                formatted_version,
+                len(srcs),
+                "" if len(srcs) == 1 else "s",
+            ),
+            toolchain = "@rules_rust//rust:toolchain_type",
+            execution_requirements = worker_execution_requirements,
+            resource_set = get_rlib_waiter_resource_set,
+        )
+    elif ctx.executable._process_wrapper:
         # Run as normal
         ctx.actions.run(
             executable = ctx.executable._process_wrapper,
