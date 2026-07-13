@@ -1110,15 +1110,10 @@ def construct_arguments(
             # Per-crate env would split the multiplex worker pool (Bazel keys
             # pools on the action env), so ship it as an --env-file in the
             # wrapper section of the param file and keep the action env to the
-            # invariant shell-derived entries.
-            per_crate_env = {k: v for k, v in env.items() if k not in ctx.configuration.default_shell_env}
-            per_crate_env["REPOSITORY_NAME"] = ctx.label.workspace_name
+            # invariant shell-derived entries. The file content is written at
+            # the end of construct_arguments, after every env merge.
             pipelined_env_file = ctx.actions.declare_file(
                 crate_info.name + ".rustc_env" + ("." + str(output_hash) if output_hash else ""),
-            )
-            ctx.actions.write(
-                pipelined_env_file,
-                "".join(["{}={}\n".format(k, v) for k, v in per_crate_env.items()]),
             )
             rustc_flags.add("--env-file", pipelined_env_file)
         rustc_flags.add("--")
@@ -1183,11 +1178,12 @@ def construct_arguments(
     rustc_flags.add(compilation_mode.debug_info, format = "--codegen=debuginfo=%s")
     rustc_flags.add(compilation_mode.strip_level, format = "--codegen=strip=%s")
 
-    # For determinism to help with build distribution and such
+    # For determinism to help with build distribution and such. Unlike
+    # --remap-path-prefix, the cwd form keeps argv constant across execroots,
+    # so the incremental session hash stays reusable across checkouts and
+    # sandboxes (rust-lang/rust#157348, needs 1.98+; requires RUSTC_BOOTSTRAP).
     if remap_path_prefix != None:
-        rustc_flags.add("--remap-path-prefix=${{pwd}}={}".format(remap_path_prefix))
-        rustc_flags.add("--remap-path-prefix=${{exec_root}}={}".format(remap_path_prefix))
-        rustc_flags.add("--remap-path-prefix=${{output_base}}={}".format(remap_path_prefix))
+        rustc_flags.add("-Zremap-cwd-prefix={}".format(remap_path_prefix))
 
     emit_without_paths = []
     for kind in emit:
@@ -1368,6 +1364,16 @@ def construct_arguments(
 
     # Needed for bzlmod-aware runfiles resolution.
     env["REPOSITORY_NAME"] = ctx.label.workspace_name
+
+    # Write the pipelined worker's per-crate env from the final merged env so
+    # link_env, toolchain.env, crate_info.rustc_env, and the extra_*_rustc_env
+    # settings all reach worker-mode rustc.
+    if pipelined_env_file != None:
+        per_crate_env = {k: v for k, v in env.items() if k not in ctx.configuration.default_shell_env}
+        ctx.actions.write(
+            pipelined_env_file,
+            "".join(["{}={}\n".format(k, v) for k, v in per_crate_env.items()]),
+        )
 
     # Create a struct which keeps the arguments separate so each may be tuned or
     # replaced where necessary

@@ -125,6 +125,7 @@ def _rust_impl(module_ctx):
                 edition = toolchain.edition,
                 extra_rustc_flags = extra_rustc_flags,
                 extra_exec_rustc_flags = toolchain.extra_exec_rustc_flags,
+                env = toolchain.env if toolchain.env else None,
                 allocator_library = str(toolchain.allocator_library) if toolchain.allocator_library else None,
                 global_allocator_library = str(toolchain.global_allocator_library) if toolchain.global_allocator_library else None,
                 rustfmt_version = toolchain.rustfmt_version,
@@ -247,6 +248,9 @@ _RUST_TOOLCHAIN_TAG = tag_class(
                 "on Windows."
             ),
             default = {},
+        ),
+        "env": attr.string_dict(
+            doc = "Environment variables to set in every rustc-family action of this toolchain. See `rust_toolchain.env`.",
         ),
         "extra_exec_rustc_flags": attr.string_list(
             doc = "Extra flags to pass to rustc in exec configuration",

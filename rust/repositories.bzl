@@ -155,6 +155,7 @@ def rust_register_toolchains(
         extra_target_triples = DEFAULT_EXTRA_TARGET_TRIPLES,
         extra_rustc_flags = None,
         extra_exec_rustc_flags = None,
+        env = None,
         strip_level = None,
         urls = DEFAULT_STATIC_RUST_URL_TEMPLATES,
         versions = _RUST_TOOLCHAIN_VERSIONS,
@@ -274,6 +275,7 @@ def rust_register_toolchains(
             rustfmt_version = rustfmt_version,
             extra_rustc_flags = extra_rustc_flags,
             extra_exec_rustc_flags = extra_exec_rustc_flags,
+            env = env,
             strip_level = strip_level,
             sha256s = sha256s,
             urls = urls,
@@ -383,6 +385,9 @@ _RUST_TOOLCHAIN_REPOSITORY_ATTRS = {
     "exec_triple": attr.string(
         doc = "The Rust-style target that this compiler runs on",
         mandatory = True,
+    ),
+    "env": attr.string_dict(
+        doc = "Environment variables to set in every rustc-family action of this toolchain. See `rust_toolchain.env`.",
     ),
     "extra_exec_rustc_flags": attr.string_list(
         doc = "Extra flags to pass to rustc in exec configuration",
@@ -593,6 +598,7 @@ def _rust_toolchain_tools_repository_impl(ctx):
         include_objcopy = include_objcopy,
         extra_rustc_flags = ctx.attr.extra_rustc_flags,
         extra_exec_rustc_flags = ctx.attr.extra_exec_rustc_flags,
+        env = ctx.attr.env if ctx.attr.env else None,
         opt_level = ctx.attr.opt_level if ctx.attr.opt_level else None,
         strip_level = ctx.attr.strip_level if ctx.attr.strip_level else None,
         version = toolchain_version,
@@ -708,6 +714,7 @@ def rust_toolchain_repository(
         dev_components = False,
         extra_rustc_flags = None,
         extra_exec_rustc_flags = None,
+        env = None,
         opt_level = None,
         strip_level = None,
         sha256s = None,
@@ -735,6 +742,7 @@ def rust_toolchain_repository(
         dev_components (bool, optional): Whether to download the rustc-dev components.
             Requires version to be "nightly". Defaults to False.
         extra_rustc_flags (list, optional): Extra flags to pass to rustc in non-exec configuration.
+        env (dict, optional): Environment variables to set in every rustc-family action of this toolchain.
             Subject to Make variable expansion with respect to RUST_SYSROOT,
             RUST_SYSROOT_SHORT, RUSTC, etc.
         extra_exec_rustc_flags (list, optional): Extra flags to pass to rustc in exec configuration.
@@ -773,6 +781,7 @@ def rust_toolchain_repository(
         dev_components = dev_components,
         extra_rustc_flags = extra_rustc_flags,
         extra_exec_rustc_flags = extra_exec_rustc_flags,
+        env = env,
         opt_level = opt_level,
         strip_level = strip_level,
         sha256s = sha256s,
@@ -1262,6 +1271,7 @@ def rust_repository_set(
         dev_components = False,
         extra_rustc_flags = None,
         extra_exec_rustc_flags = None,
+        env = None,
         opt_level = None,
         strip_level = None,
         sha256s = None,
@@ -1353,6 +1363,7 @@ def rust_repository_set(
             exec_triple = exec_triple,
             extra_exec_rustc_flags = toolchain_extra_exec_rustc_flags,
             extra_rustc_flags = toolchain_extra_rustc_flags,
+            env = env,
             opt_level = opt_level.get(toolchain.target_triple) if opt_level != None else None,
             strip_level = strip_level.get(toolchain.target_triple) if strip_level != None else None,
             target_settings = target_settings,

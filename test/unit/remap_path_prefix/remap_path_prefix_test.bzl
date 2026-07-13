@@ -17,9 +17,7 @@ def _remap_path_prefix_test_impl(ctx):
     action = target.actions[0]
     assert_action_mnemonic(env, action, "Rustc")
 
-    assert_argv_contains(env, action, "--remap-path-prefix=${pwd}=.")
-    assert_argv_contains(env, action, "--remap-path-prefix=${exec_root}=.")
-    assert_argv_contains(env, action, "--remap-path-prefix=${output_base}=.")
+    assert_argv_contains(env, action, "-Zremap-cwd-prefix=.")
 
     return analysistest.end(env)
 
