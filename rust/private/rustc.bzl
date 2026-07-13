@@ -1203,10 +1203,9 @@ def construct_arguments(
     if linker_script:
         rustc_flags.add(linker_script, format = "--codegen=link-arg=-T%s")
 
-    # Use incremental cache if enabled
-    if attr.use_incremental_cache:
-        if not toolchain._experimental_incremental_cache_path:
-            fail("Incremental cache path is not set. Please set `--@rules_rust//rust/settings:experimental_incremental_cache_path`.")
+    # Use incremental compilation when enabled and a cache location is
+    # configured; environments without a configured cache build non-incremental.
+    if attr.use_incremental_cache and toolchain._experimental_incremental_cache_path:
         rustc_flags.add(toolchain._experimental_incremental_cache_path, format = "--codegen=incremental=%s")
 
     # Tell Rustc where to find the standard library (or libcore)
