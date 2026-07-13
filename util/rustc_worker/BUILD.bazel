@@ -1,0 +1,11 @@
+# Placeholder for the in-tree pipelined rustc worker (top of the patched
+# branch). The _pipelined_worker attr resolves this label unconditionally, but
+# the binary only runs when //rust/settings:pipelined_compilation_worker is
+# set (default False).
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+sh_binary(
+    name = "rustc_worker",
+    srcs = ["rustc_worker_unavailable.sh"],
+    visibility = ["//visibility:public"],
+)
